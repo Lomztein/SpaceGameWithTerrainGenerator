@@ -1,96 +1,147 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+//[ExecuteInEditMode]
+[RequireComponent (typeof(MeshFilter))]
+[RequireComponent (typeof(MeshCollider))]
+[RequireComponent (typeof(MeshRenderer))]
+
 public class TerrainGenerator : MonoBehaviour {
 
-//	public float noiseScale;
-//	public float heightScale;
-//	public float maxHeight;
-//	public int fractalAmount;
+	public float noiseScale;
+	public float heightScale;
+	public float maxHeight;
+	public int fractalAmount;
+	public Vector3 startingPos;
 
-	public int mapSize;
+	public int sizeX;
+	public int sizeY;
+	public float tileSize;
 	public int mapDetail;
+	public Texture2D heightmap;
+	public float terrainOffsetZ;
 
-	public bool generateNew;
-
-	public Vector3[] vtp;
+	Vector3[] verts;
+	Vector3[] norms;
+	Vector2[] uvs;
+	int[] tris;
 
 	void Start () {
-		GenerateTerrainMesh();
+		BuildMesh();
 	}
 
 	// Use this for initialization
-	void GenerateTerrainMesh () {
+	public void BuildMesh () {
 
-		Mesh newMesh = new Mesh();
+		int numTiles = sizeX * sizeY;
+		int numTris = numTiles * 2;
 
-		int vertCount = ((mapSize+1)*(mapSize+1));
-		int tileCount = (mapSize*mapSize);
-		int triCount = (tileCount*3);
+		int vsizeX = sizeX + 1;
+		int vsizeY = sizeY + 1;
+		int numVerts = vsizeX * vsizeY;
 
-		/*Debug.Log (vertCount + " verts!");
-		Debug.Log (tileCount + " tiles!");
-		Debug.Log (triCount/1.5f + " tris!");*/
+		verts = new Vector3[numVerts];
+		norms = new Vector3[numVerts];
+		uvs = new Vector2[numVerts];
 
-		Vector3[] verts = new Vector3[vertCount];
-		Vector3[] norms = new Vector3[verts.Length];
-		int[] tris = new int[triCount*2];
+		tris = new int[numTris * 3];
 
-		int index = 0;
-		for (int x = 0; x < mapSize+1; x++) {
-			for (int y = 0; y < mapSize+1; y++) {
-				verts[index] = new Vector3 (x,y,transform.position.z);
-				//Debug.Log (verts[index]);
-				index++;
+		int x, y;
+		for (y = 0; y < sizeY; y++) {
+			for (x = 0; x < sizeX; x++) {
+				verts[y * vsizeX + x] = new Vector3(x * tileSize,y * tileSize,0);
+				norms[y * vsizeX + x] = -Vector3.forward;
+				uvs  [y * vsizeX + x] = new Vector2((float)x / vsizeX,(float)y / vsizeY);
 			}
 		}
 
-		Debug.Log (tris.Length);
-		Debug.Log (triCount);
+		Debug.Log ("Done vertices!");
 
-		int squareIndex = 0;
-		for (int t = 0; t < tris.Length; t+=6) {
+		for (y = 0; y < sizeY; y++) {
+			for (x = 0; x < sizeX; x++) {
+				int squareIndex = y * sizeX + x;
+				int triOffset = squareIndex * 6;
 
-			tris[t] = squareIndex;
-			tris[t+1] = squareIndex + 1;
-			tris[t+2] = squareIndex + (mapSize) + 1;
-
-			tris[t+3] = squareIndex + 1;
-			tris[t+4] = squareIndex + mapSize;
-			tris[t+5] = squareIndex + mapSize + 1;
-
-			//Debug.Log (squareIndex);
-			squareIndex++;
-		
+				tris[triOffset + 0] = y * vsizeX + x + vsizeX + 0;
+				tris[triOffset + 1] = y * vsizeX + x + vsizeX + 1;
+				tris[triOffset + 2] = y * vsizeX + x + 0;
+				
+				tris[triOffset + 3] = y * vsizeX + x + vsizeX + 1;
+				tris[triOffset + 4] = y * vsizeX + x + 1;
+				tris[triOffset + 5] = y * vsizeX + x + 0;
+			}
 		}
 
-		for (int n = 0; n < norms.Length; n++) {
-			norms[n] = Vector3.up;
-		}
-		
+		Debug.Log ("Done triangles!");
+
+
+		Mesh newMesh = new Mesh();
+
+		//heightmap = GenerateHeightmap(sizeX,sizeY,mapDetail);
+		GenerateHeight();
+
+		Vector3 meshCenter = newMesh.bounds.extents;
 		newMesh.vertices = verts;
 		newMesh.triangles = tris;
 		newMesh.normals = norms;
-			
+		newMesh.uv = uvs;
+		
 		MeshFilter meshFilter = GetComponent<MeshFilter>();
-//		MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
+		MeshRenderer meshRenderer = GetComponent<MeshRenderer>();
 		MeshCollider meshCollider = GetComponent<MeshCollider>();
-
+		
 		meshFilter.mesh = newMesh;
 		meshCollider.sharedMesh = newMesh;
 
+		transform.position = meshCenter;
+
+		Debug.Log ("Done mesh!");
 	}
 
-	void OnDrawGizmos () {
-		foreach (Vector3 v in vtp) {
-			Gizmos.DrawSphere (v,0.25f);
+	void GenerateHeight () {
+
+		for (int i=0;i<verts.Length;i++) {
+
+			int x = heightmap.width/sizeX * (int)verts[i].x;
+			int y = heightmap.height/sizeY * (int)verts[i].y;
+			//Debug.Log (x + ", " + y);
+			float newZ = heightmap.GetPixel(x, y).grayscale * heightScale;
+			verts[i] += new Vector3 (0,0,newZ);
+
 		}
+
+		Debug.Log ("Done height!");
+
 	}
 
-	void Update () {
-		if (generateNew == true) {
-			GenerateTerrainMesh();
-			generateNew = false;
+	Texture2D GenerateHeightmap (int texWidth, int texHeight, int factor) {
+
+		Texture2D tex = new Texture2D(texWidth*factor,texHeight*factor);
+		for (int y = 0; y < texHeight; y++) {
+			for (int x = 0; x < texWidth; x++) {
+				float noise = GetPerlinFractal(x,y,fractalAmount);
+				tex.SetPixel (x,y,new Color(noise,noise,noise));
+			}
 		}
+
+		tex.wrapMode = TextureWrapMode.Repeat;
+		tex.filterMode = FilterMode.Bilinear;
+		tex.Apply ();
+		Debug.Log ("Done texture!");
+		renderer.material.mainTexture = tex;
+		return tex;
+
+	}
+
+	float GetPerlinFractal (int x, int y, int amount) {
+		float value = 0;
+
+		int intAmount = amount;
+		while (intAmount > 0) {
+			value += Mathf.PerlinNoise (x / noiseScale,y / noiseScale);
+			intAmount--;
+		}
+		value /= amount;
+		return value;
 	}
 }

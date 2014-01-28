@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 
 Project("{A9327132-B406-CE90-9020-29805AD2CC92}") = "SpaceGameWithTerrainGenerator", "Assembly-CSharp.csproj", "{7912DF61-CE29-5984-409E-827927D48FC8}"
 EndProject
+Project("{A9327132-B406-CE90-9020-29805AD2CC92}") = "SpaceGameWithTerrainGenerator", "Assembly-CSharp-Editor.csproj", "{11A81AFE-8525-170F-95B4-F41F4F8267B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,11 +15,15 @@ Global
 		{7912DF61-CE29-5984-409E-827927D48FC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7912DF61-CE29-5984-409E-827927D48FC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7912DF61-CE29-5984-409E-827927D48FC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11A81AFE-8525-170F-95B4-F41F4F8267B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11A81AFE-8525-170F-95B4-F41F4F8267B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11A81AFE-8525-170F-95B4-F41F4F8267B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11A81AFE-8525-170F-95B4-F41F4F8267B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-																									GlobalSection(MonoDevelopProperties) = preSolution
+																																			GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Assembly-CSharp.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
